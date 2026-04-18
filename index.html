@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>🍎 vs 🤖 vs 🕌 Battle Arena v6.0</title>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #050510; color: #fff; overflow: hidden; }
+    #ui { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(10,10,25,0.9); padding: 15px; border-radius: 12px; max-width: 360px; backdrop-filter: blur(8px); border: 1px solid #333; transition: border-color 0.3s; }
+    #ui.main-account { border-color: gold; box-shadow: 0 0 15px rgba(255,215,0,0.3); }
+    #upgrade-panel { position: absolute; right: 10px; top: 10px; z-index: 100; background: rgba(10,10,25,0.9); padding: 15px; border-radius: 12px; max-width: 300px; display: none; backdrop-filter: blur(8px); border: 1px solid #333; max-height: 80vh; overflow-y: auto; }
+    button { background: #4a9eff; border: none; padding: 9px 14px; margin: 6px 0; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; color: #fff; width: 100%; }
+    button:hover:not(:disabled) { background: #6ab1ff; transform: scale(1.02); }
+    button.android { background: #a4c639; } button.android:hover:not(:disabled) { background: #b8dc5e; }
+    button.persian { background: linear-gradient(135deg, #ff6b6b, #ffa500); } button.persian:hover:not(:disabled) { background: linear-gradient(135deg, #ff8585, #ffc107); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; background: #555; }
+    .stat { display: flex; justify-content: space-between; margin: 6px 0; font-size: 14px; }
+    .progress { height: 10px; background: #1a1a2e; border-radius: 5px; margin: 4px 0; overflow: hidden; position: relative; }
+    .progress-fill { height: 100%; transition: width 0.3s; }
+    .lvl-text { position: absolute; right: 5px; top: -1px; font-size: 9px; color: #aaa; }
+    #battle-log { position: absolute; bottom: 10px; left: 10px; right: 10px; height: 120px; overflow-y: auto; background: rgba(0,0,0,0.75); padding: 10px; border-radius: 10px; font-size: 13px; }
+    .log-entry { margin: 4px 0; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .iphone { color: #00d1ff; } .android { color: #a4c639; } .persian { color: #ffa500; } .critical { color: #ff6b6b; font-weight: bold; } .gold { color: gold; font-weight: bold; }
+    
+    #controls-top { position: absolute; top: 10px; right: 10px; z-index: 101; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    #controls-top button { width: auto; padding: 8px 10px; background: rgba(0,0,0,0.6); border-radius: 6px; font-size: 16px; }
+    #controls-top button:hover { background: rgba(255,255,255,0.15); }
+
+    .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:900; display:none; justify-content:center; align-items:center; backdrop-filter: blur(3px); }
+    .modal-content { background:#111; padding:20px; border-radius:12px; width:90%; max-width:450px; max-height:80vh; overflow-y:auto; border:1px solid #444; position:relative; }
+    .close-btn { position:absolute; top:10px; right:10px; background:none; border:none; color:#aaa; font-size:20px; cursor:pointer; }
+    .close-btn:hover { color:#fff; }
+
+    .achievement-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+    .achievement-card { background: #1a1a2e; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #333; transition: 0.2s; }
+    .achievement-card.unlocked { border-color: gold; background: #2a2a40; }
+    .achievement-card.locked { opacity: 0.5; filter: grayscale(0.8); }
+    .achievement-card .icon { font-size: 28px; margin-bottom: 5px; }
+    .achievement-card .name { font-weight: bold; font-size: 13px; }
+    .achievement-card .desc { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+    .leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .leaderboard-table th, .leaderboard-table td { padding: 8px; text-align: left; border-bottom: 1px solid #333; font-size: 13px; }
+    .leaderboard-table th { background: #1a1a2e; color: #888; }
+    .leaderboard-table tr:hover { background: #1f1f35; }
+    .rank-1 { color: gold; font-weight: bold; }
+    .rank-2 { color: #c0c0c0; font-weight: bold; }
+    .rank-3 { color: #cd7f32; font-weight: bold; }
+
+    .quest-card { background:#1a1a2e; padding:12px; margin:8px 0; border-radius:8px; border:1px solid #333; }
+    .quest-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .quest-header .name { font-weight:bold; }
+    .quest-header .reward { color:#4ade80; font-size:12px; }
+    .quest-claim { background:#4ade80; color:#000; font-weight:bold; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px; margin-top:6px; width:auto; display:inline-block; }
+    .quest-claim:disabled { background:#555; color:#888; cursor:not-allowed; }
+
+    .title-row { background:#1a1a2e; padding:10px; margin:6px 0; border-radius:8px; border:1px solid #333; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+    .title-row:hover { background:#252540; }
+    .title-row.equipped { border-color:#00ffaa; background:#1a2e2e; }
+    .title-row.locked { opacity:0.5; cursor:default; }
+
+    #toast-container { position: fixed; bottom: 140px; right: 10px; z-index: 950; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: linear-gradient(135deg, #1a1a2e, #0a0a1a); padding: 10px 14px; border-radius: 8px; border-left: 4px solid gold; color: #fff; font-size: 13px; animation: slideIn 0.3s, fadeOut 0.5s 4.5s forwards; box-shadow: 0 4px 12px rgba(0,0,0,0.5); max-width: 280px; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+    @keyframes fadeOut { to { opacity:0; transform: translateY(10px); } }
+
+    #auth-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #0a0a1a, #000); display: flex; justify-content: center; align-items: center; z-index: 300; }
+    .auth-box { background: rgba(15,15,30,0.95); padding: 25px; border-radius: 15px; text-align: center; width: 320px; border: 1px solid #444; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    .auth-box input { width: 90%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #555; background: #1a1a2e; color: #fff; }
+    .auth-btn { padding: 10px; margin: 5px 0; } .auth-btn.register { background: #a4c639; } .auth-btn.register:hover { background: #b8dc5e; }
+    #auth-msg { color: #ff6b6b; margin-top: 10px; font-size: 13px; min-height: 18px; }
+    
+    .skill-row { background: #1a1a2e; padding: 10px; margin: 8px 0; border-radius: 8px; border: 1px solid #333; }
+    .skill-row small { color: #aaa; display: block; margin: 3px 0; }
+    .mode-toggle { display: flex; gap: 5px; margin: 8px 0; }
+    .mode-btn { flex: 1; padding: 8px; font-size: 13px; background: #333; }
+    .mode-btn.active { background: #ff6b6b; }
+
+    #main-greeting { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; animation: fadeIn 0.4s; }
+    #main-greeting h1 { font-size: 2.8em; color: gold; text-shadow: 0 0 25px gold; margin: 0; }
+    #main-greeting p { font-size: 1.3em; color: #fff; margin: 15px 0 30px; text-align: center; }
+    #main-greeting button { padding: 14px 35px; font-size: 1.2em; background: linear-gradient(45deg, gold, #ffcc00); color: #111; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+    #main-greeting button:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255,215,0,0.8); }
+  </style>
+</head>
+<body>
+  <div id="controls-top">
+    <button id="sound-toggle" onclick="toggleSound()">🔊</button>
+    <button onclick="openModal('quests')">📋</button>
+    <button onclick="openModal('titles')">🏅</button>
+    <button onclick="openModal('achievements')">🏆</button>
+    <button onclick="openModal('leaderboard')">📊</button>
+    <button onclick="openSecretModal()">🔑</button>
+    <button onclick="toggleDebug()">🛠️</button>
+  </div>
+
+  <div id="auth-screen">
+    <div class="auth-box">
+      <h2>👤 Вход / Регистрация</h2>
+      <input type="text" id="username" placeholder="Логин">
+      <input type="password" id="password" placeholder="Пароль">
+      <button class="auth-btn" onclick="login()">🔓 Войти</button>
+      <button class="auth-btn register" onclick="register()">📝 Создать аккаунт</button>
+      <p id="auth-msg"></p>
+    </div>
+  </div>
+
+  <div id="main-greeting" style="display:none">
+    <h1>👑 ДОБРО ПОЖАЛОВАТЬ, СОЗДАТЕЛЬ! 👑</h1>
+    <p>Аккаунт <b style="color:gold">ewq</b> успешно активирован.<br>♾️ Бесконечные монеты | 🔓 Полный доступ | ⚡ Режим Бога</p>
+    <button onclick="closeGreeting()">🚀 Начать Игру</button>
+  </div>
+
+  <div id="secret-modal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('secret')">&times;</button><h3>🔑 Секретный код</h3><input type="text" id="secret-input" placeholder="Введите код..." style="width:90%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #555;background:#1a1a2e;color:#fff;text-align:center;"><button onclick="checkSecretCode()">Разблокировать</button><p id="secret-msg" style="margin:8px 0 0; font-size:12px; color:#aaa;"></p></div></div>
+  <div id="quests-modal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('quests')">&times;</button><h3>📋 Ежедневные квесты <span style="font-size:12px;color:#aaa;float:right;" id="quest-timer"></span></h3><p style="color:#aaa;font-size:13px;">Сбрасываются в 00:00. Выполняйте для бонусов!</p><div id="quests-list"></div></div></div>
+  <div id="titles-modal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('titles')">&times;</button><h3>🏅 Система Титулов</h3><p style="color:#aaa;font-size:13px;">Разблокируйте и выбирайте отображаемый титул.</p><div id="titles-list"></div></div></div>
+  <div id="achievements-modal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('achievements')">&times;</button><h3>🏆 Достижения</h3><div id="achievements-list" class="achievement-grid"></div></div></div>
+  <div id="leaderboard-modal" class="modal"><div class="modal-content"><button class="close-btn" onclick="closeModal('leaderboard')">&times;</button><h3>📊 Таблица Лидеров</h3><button onclick="refreshLeaderboard()" style="margin-bottom:8px;">🔄 Обновить</button><table class="leaderboard-table"><thead><tr><th>#</th><th>Игрок</th><th>Ур.</th><th>Биты</th><th>Фракция</th><th>🏆</th></tr></thead><tbody id="leaderboard-body"></tbody></table></div></div>
+
+  <div id="debug-panel" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(0,0,0,0.85);padding:12px;border-radius:10px;display:none;min-width:380px;border:1px solid #00ffaa;backdrop-filter:blur(5px);">
+    <h4 style="margin:0 0 10px;color:#00ffaa;font-size:16px;display:flex;justify-content:space-between;">🛠️ Режим Разработчика <span style="font-size:12px;color:#888;">[Ctrl+Shift+D]</span></h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;font-size:13px;"><div id="dbg-fps">FPS: 0</div><div id="dbg-state">State: Menu</div><div id="dbg-player">Player: -/-</div><div id="dbg-enemy">Enemy: -/-</div><div id="dbg-skills">Skills: None</div><div id="dbg-bits">Bits: 0</div></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;"><button class="debug-btn" onclick="toggleGodMode()">🛡️ God Mode</button><button class="debug-btn" onclick="addBitsDebug(1000)">💾 +1k Битов</button><button class="debug-btn" onclick="forceWinDebug()">🏆 Принуд. Победа</button><button class="debug-btn" onclick="resetDebug()">🔄 Сброс Прогресса</button></div>
+    <div id="debug-log" style="height:60px;overflow-y:auto;background:#0a0a0a;padding:6px;border-radius:6px;font-family:monospace;font-size:11px;color:#888;margin-top:8px;">> Debug ready...</div>
+  </div>
+
+  <div id="ui">
+    <h3 id="user-display">👤 Гость</h3>
+    <div id="faction-select">
+      <p style="margin:0 0 10px 0; color:#aaa;">Выберите фракцию:</p>
+      <button class="faction-btn" onclick="selectFaction('iphone')">🍎 iPhone Squad</button>
+      <button class="faction-btn android" onclick="selectFaction('android')">🤖 Android Army</button>
+      <button class="faction-btn persian" onclick="selectFaction('persian')">🕌 Persian Dynasty</button>
+    </div>
+    <div id="game-controls" style="display:none">
+      <div class="mode-toggle"><button class="mode-btn active" onclick="setMode('arena')">⚔️ Арена</button><button class="mode-btn" onclick="setMode('boss')">👑 БОСС</button></div>
+      <div class="stat"><span>❤️ HP:</span><span id="hp">100/100</span></div><div class="progress"><div class="progress-fill" id="hp-bar" style="width:100%;background:#4ade80"></div></div>
+      <div class="stat"><span>⚔️ Урон:</span><span id="damage">10</span></div><div class="stat"><span>📊 Уровень:</span><span id="level">1</span></div><div class="stat"><span>💾 Биты:</span><span id="bits">0</span></div>
+      <div id="skin-selector" style="margin:8px 0;"></div>
+      <button onclick="startBattle()">🔥 В бой!</button><button onclick="showUpgrades()">🔧 Навыки</button><button onclick="logout()" style="background:#ff4444; margin-top:10px;">🚪 Выйти</button>
+    </div>
+  </div>
+
+  <div id="upgrade-panel"><h4>🔧 Прокачка навыков</h4><div id="upgrades-list"></div><button onclick="closeUpgrades()" style="margin-top:10px">✖ Закрыть</button></div>
+  <div id="battle-log"></div>
+  <div id="toast-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+  <script>
+    const MAIN_ACCOUNT = { user: 'ewq', pass: '12345', coins: 999999999 };
+    let isMainAccount = false, isGodMode = false, unlockedSkins = JSON.parse(localStorage.getItem('skins_db')||'{}');
+    let activeSkin = localStorage.getItem('active_skin') || 'default';
+    let playerStats = JSON.parse(localStorage.getItem('stats_db')||'{"wins":0,"bossWins":0,"totalDamage":0,"totalBitsEarned":0,"godModeActivated":false,"lastLogin":""}');
+    let unlockedAchievements = JSON.parse(localStorage.getItem('achievements_db')||'[]');
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard_db')||'[]');
+    let currentUser = null;
+    
+    // Квесты
+    const questTemplates = [
+      {id:'q_win3', name:'Победить 3 раза', type:'wins', target:3, reward:100},
+      {id:'q_dmg500', name:'Нанести 500 урона', type:'damage', target:500, reward:150},
+      {id:'q_boss1', name:'Победить босса', type:'boss', target:1, reward:200},
+      {id:'q_upg2', name:'Прокачать навык 2 раза', type:'upgrades', target:2, reward:120}
+    ];
+    let dailyQuests = JSON.parse(localStorage.getItem('daily_quests_db')||'{"date":"","quests":[]}');
+    
+    // Титулы
+    const titleTemplates = [
+      {id:'t_newbie', name:'Новичок', icon:'🐣', condition: () => true},
+      {id:'t_arena', name:'Воин Арены', icon:'⚔️', condition: () => playerStats.wins >= 10},
+      {id:'t_boss', name:'Убийца Боссов', icon:'💀', condition: () => playerStats.bossWins >= 5},
+      {id:'t_rich', name:'Магнат', icon:'💰', condition: () => playerStats.totalBitsEarned >= 50000},
+      {id:'t_legend', name:'Легенда', icon:'🌟', condition: () => game.player.level >= 50},
+      {id:'t_shah', name:'Персидский Шах', icon:'👑', condition: () => game.faction === 'persian' && playerStats.wins >= 10},
+      {id:'t_hacker', name:'Хакер', icon:'💻', condition: () => playerStats.godModeActivated},
+      {id:'t_collector', name:'Коллекционер', icon:'📦', condition: () => unlockedAchievements.length >= 5}
+    ];
+    let unlockedTitles = JSON.parse(localStorage.getItem('unlocked_titles_db')||'["t_newbie"]');
+    let equippedTitle = localStorage.getItem('equipped_title') || 't_newbie';
+
+    const achievements = [
+      { id: 'first_win', name: 'Первый шаг', desc: 'Выиграйте 1 битву', icon: '🥉', reward: 50, check: () => playerStats.wins >= 1 },
+      { id: 'level_10', name: 'Опытный боец', desc: 'Достигните 10 уровня', icon: '🥈', reward: 100, check: () => game.player.level >= 10 },
+      { id: 'level_30', name: 'Ветеран', desc: 'Достигните 30 уровня', icon: '🥇', reward: 200, check: () => game.player.level >= 30 },
+      { id: 'boss_slayer', name: 'Убийца боссов', desc: 'Победите босса', icon: '💀', reward: 300, check: () => playerStats.bossWins >= 1 },
+      { id: 'collector_5', name: 'Коллекционер', desc: 'Разблокируйте 5 достижений', icon: '📦', reward: 150, check: () => unlockedAchievements.length >= 5 },
+      { id: 'bits_10k', name: 'Богач', desc: 'Накопите 10,000 битов', icon: '💎', reward: 500, check: () => game.player.bits >= 10000 },
+      { id: 'god_hacker', name: 'Хакер', desc: 'Активируйте God Mode', icon: '💻', reward: 0, check: () => playerStats.godModeActivated },
+      { id: 'persian_ruler', name: 'Шах Персии', desc: 'Выберите персидскую фракцию', icon: '👑', reward: 100, check: () => game.faction === 'persian' },
+      { id: 'damage_5k', name: 'Разрушитель', desc: 'Нанесите 5000 суммарного урона', icon: '🔥', reward: 250, check: () => playerStats.totalDamage >= 5000 }
+    ];
+
+    const game = {
+      player: { hp:100, maxHp:100, damage:10, level:1, bits:0, skills:{} },
+      enemy: { hp:100, maxHp:100, damage:8, name:'', boss:false, phase:1, turnCount:0 },
+      skillsData: {
+        iphone: [{id:'siri',name:'🎙️ Siri Boost',baseCost:15,perLvl:5,desc:'Урон +5/ур'},{id:'shield',name:'🛡️ FaceID Shield',baseCost:20,perLvl:8,desc:'HP +8/ур'},{id:'overclock',name:'⚡ A-Chip OC',baseCost:25,perLvl:2,desc:'Крит +2%/ур'},{id:'airdrop',name:'📦 AirDrop Heal',baseCost:30,perLvl:3,desc:'Реген +3/ур'}],
+        android: [{id:'root',name:'🔓 Root Access',baseCost:15,perLvl:6,desc:'Урон +6/ур'},{id:'multitask',name:'🔄 Multi-Task',baseCost:20,perLvl:1,desc:'Двойн. атк +1%/ур'},{id:'battery',name:'🔋 Battery Save',baseCost:25,perLvl:4,desc:'Реген +4/ур'},{id:'customrom',name:'🛠️ Custom ROM',baseCost:30,perLvl:3,desc:'Уклон +3%/ур'}],
+        persian: [{id:'simurgh',name:'🦅 Simurgh Bless',baseCost:18,perLvl:5,desc:'Урон +5/ур'},{id:'cyrus',name:'⚔️ Cyrus Shield',baseCost:22,perLvl:10,desc:'HP +10/ур'},{id:'carpet',name:'🧞 Magic Carpet',baseCost:28,perLvl:2,desc:'Уклон +2%/ур'},{id:'genie',name:'💫 Genie Wish',baseCost:32,perLvl:4,desc:'Крит +4%/ур'}]
+      }
+    };
+
+    let audioCtx, soundEnabled = true;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+    function playSound(type) {
+      if (!soundEnabled || !audioCtx) return;
+      const now = audioCtx.currentTime; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      if (type==='click') { osc.frequency.value=800; osc.type='sine'; gain.gain.setValueAtTime(0.08,now); gain.gain.exponentialRampToValueAtTime(0.01,now+0.08); }
+      else if (type==='attack') { osc.frequency.setValueAtTime(220,now); osc.frequency.exponentialRampToValueAtTime(90,now+0.15); osc.type='sawtooth'; gain.gain.setValueAtTime(0.15,now); gain.gain.exponentialRampToValueAtTime(0.01,now+0.15); }
+      else if (type==='hit') { osc.frequency.value=350; osc.type='square'; gain.gain.setValueAtTime(0.12,now); gain.gain.exponentialRampToValueAtTime(0.01,now+0.08); }
+      else if (type==='victory') { [440,554,659,880].forEach((f,i)=>{const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.frequency.value=f;o.type='triangle';g.gain.setValueAtTime(0.1,now+i*0.1);g.gain.exponentialRampToValueAtTime(0.01,now+i*0.1+0.3);o.connect(g);g.connect(audioCtx.destination);o.start(now+i*0.1);o.stop(now+i*0.1+0.3);}); return; }
+      else if (type==='upgrade') { osc.frequency.setValueAtTime(600,now); osc.frequency.linearRampToValueAtTime(1400,now+0.15); osc.type='triangle'; gain.gain.setValueAtTime(0.1,now); gain.gain.exponentialRampToValueAtTime(0.01,now+0.2); }
+      else if (type==='boss') { osc.frequency.setValueAtTime(120,now); osc.type='sawtooth'; gain.gain.setValueAtTime(0.2,now); gain.gain.linearRampToValueAtTime(0.01,now+0.8); }
+      else if (type==='admin') { [300,400,500,600].forEach((f,i)=>{const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(0.15,now+i*0.15);g.gain.exponentialRampToValueAtTime(0.01,now+i*0.15+0.4);o.connect(g);g.connect(audioCtx.destination);o.start(now+i*0.15);o.stop(now+i*0.15+0.4);}); return; }
+      else if (type==='persian') { [280,350,420,560].forEach((f,i)=>{const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(0.12,now+i*0.12);g.gain.exponentialRampToValueAtTime(0.01,now+i*0.12+0.35);o.connect(g);g.connect(audioCtx.destination);o.start(now+i*0.12);o.stop(now+i*0.12+0.35);}); return; }
+      if(type!=='victory'&&type!=='admin'&&type!=='persian') { osc.start(now); osc.stop(now+0.25); }
+    }
+    function toggleSound() { soundEnabled=!soundEnabled; document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+
+    function getDB() { try { return JSON.parse(localStorage.getItem('tech_battle_db')||'{}'); } catch { return {}; } }
+    function saveDB(db) { if(!isMainAccount) localStorage.setItem('tech_battle_db', JSON.stringify(db)); }
+    function register() { const u=document.getElementById('username').value.trim(); const p=document.getElementById('password').value.trim(); if(u.length<3||p.length<3) return msg('Мин. 3 символа'); if(u===MAIN_ACCOUNT.user) return msg('Зарезервировано'); const db=getDB(); if(db[u]) return msg('Логин занят'); db[u]={pass:p, faction:null, level:1, bits:50, skills:{}, mode:'arena'}; saveDB(db); msg('Создан!', true); setTimeout(login,500); }
+    function login() {
+      const u=document.getElementById('username').value.trim(); const p=document.getElementById('password').value.trim();
+      if(u===MAIN_ACCOUNT.user && p===MAIN_ACCOUNT.pass) { isMainAccount=true; currentUser=u; game.player.bits=MAIN_ACCOUNT.coins; game.player.level=1; game.player.skills={}; document.getElementById('auth-screen').style.display='none'; document.getElementById('user-display').innerHTML=`👑 <span style="color:gold">${u}</span>`; document.getElementById('ui').classList.add('main-account'); document.getElementById('faction-select').style.display='none'; document.getElementById('game-controls').style.display='block'; document.getElementById('main-greeting').style.display='flex'; playSound('admin'); if(!renderer) init3D(); updateUI(); return; }
+      isMainAccount=false; const db=getDB(); if(!db[u]) return msg('Не найден'); if(db[u].pass!==p) return msg('Неверный пароль');
+      currentUser=u; document.getElementById('auth-screen').style.display='none'; document.getElementById('user-display').textContent=`👤 ${u}`; document.getElementById('ui').classList.remove('main-account');
+      playerStats.lastLogin = new Date().toDateString(); localStorage.setItem('stats_db', JSON.stringify(playerStats)); checkDailyReset();
+      loadUserData(); if(!renderer) init3D(); msg('',true);
+    }
+    function closeGreeting() { document.getElementById('main-greeting').style.display='none'; playSound('click'); }
+    function logout() { currentUser=null; isMainAccount=false; document.getElementById('auth-screen').style.display='flex'; document.getElementById('faction-select').style.display='block'; document.getElementById('game-controls').style.display='none'; document.getElementById('main-greeting').style.display='none'; document.getElementById('username').value=''; document.getElementById('password').value=''; document.getElementById('ui').classList.remove('main-account'); closeUpgrades(); }
+    function loadUserData() { const db=getDB(); const d=db[currentUser]; game.player.level=d.level; game.player.bits=d.bits; game.player.skills={...d.skills}; if(d.faction) { game.faction=d.faction; document.getElementById('faction-select').style.display='none'; document.getElementById('game-controls').style.display='block'; setMode(d.mode); applySkills(); updateSkinSelector(); updateTitleDisplay(); } else { document.getElementById('faction-select').style.display='block'; document.getElementById('game-controls').style.display='none'; } updateUI(); checkTitles(); }
+    function saveUserData() { if(!currentUser||isMainAccount) return; const db=getDB(); db[currentUser].level=game.player.level; db[currentUser].bits=game.player.bits; db[currentUser].skills={...game.player.skills}; db[currentUser].mode=game.enemy.boss?'boss':'arena'; saveDB(db); }
+    function msg(t,ok=false) { document.getElementById('auth-msg').textContent=t; if(ok) { document.getElementById('username').value=''; document.getElementById('password').value=''; } }
+
+    // === ЕЖЕДНЕВНЫЕ КВЕСТЫ ===
+    function checkDailyReset() {
+      const today = new Date().toDateString();
+      if(dailyQuests.date !== today) {
+        dailyQuests = { date: today, quests: [] };
+        // Генерируем 3 случайных квеста
+        const shuffled = [...questTemplates].sort(()=>0.5-Math.random());
+        dailyQuests.quests = shuffled.slice(0,3).map(q => ({...q, progress:0, completed:false, claimed:false}));
+        localStorage.setItem('daily_quests_db', JSON.stringify(dailyQuests));
+        log('📅 Новые ежедневные квесты!', 'system');
+      }
+      renderDailyQuests();
+    }
+    function updateQuestProgress(type, amount) {
+      if(!currentUser) return;
+      let updated = false;
+      dailyQuests.quests.forEach(q => {
+        if(q.type === type && !q.completed) {
+          q.progress = Math.min(q.target, q.progress + amount);
+          if(q.progress >= q.target && !q.completed) {
+            q.completed = true; updated = true;
+            showToast(`✅ Квест "${q.name}" выполнен!`);
+          }
+        }
+      });
+      if(updated) localStorage.setItem('daily_quests_db', JSON.stringify(dailyQuests));
+      if(document.getElementById('quests-modal').style.display==='flex') renderDailyQuests();
+    }
+    function claimQuest(id) {
+      const q = dailyQuests.quests.find(x => x.id===id);
+      if(!q || !q.completed || q.claimed) return;
+      q.claimed = true;
+      game.player.bits += q.reward;
+      playerStats.totalBitsEarned += q.reward;
+      showToast(`🎁 +${q.reward} 💾 за "${q.name}"`);
+      localStorage.setItem('daily_quests_db', JSON.stringify(dailyQuests));
+      if(!isMainAccount) saveUserData(); updateUI(); renderDailyQuests();
+    }
+    function renderDailyQuests() {
+      const cont = document.getElementById('quests-list'); cont.innerHTML = '';
+      const now = new Date(); const endOfDay = new Date(now); endOfDay.setHours(24,0,0,0);
+      const diff = endOfDay - now;
+      document.getElementById('quest-timer').textContent = `Сброс через: ${Math.floor(diff/3600000)}ч ${Math.floor((diff%3600000)/60000)}м`;
+      dailyQuests.quests.forEach(q => {
+        const pct = (q.progress/q.target)*100;
+        const div = document.createElement('div'); div.className = 'quest-card';
+        div.innerHTML = `<div class="quest-header"><span class="name">${q.name}</span><span class="reward">+${q.reward} 💾</span></div>
+          <div class="progress"><div class="progress-fill" style="width:${pct}%;background:${q.completed?'#4ade80':'#4a9eff'}"></div><div class="lvl-text">${q.progress}/${q.target}</div></div>
+          ${q.claimed?'<span style="color:#4ade80">✅ Получено</span>':`<button class="quest-claim" ${q.completed?'':'disabled'} onclick="claimQuest('${q.id}')">Забрать</button>`}`;
+        cont.appendChild(div);
+      });
+    }
+
+    // === СИСТЕМА ТИТУЛОВ ===
+    function checkTitles() {
+      titleTemplates.forEach(t => {
+        if(!unlockedTitles.includes(t.id) && t.condition()) {
+          unlockedTitles.push(t.id);
+          localStorage.setItem('unlocked_titles_db', JSON.stringify(unlockedTitles));
+          showToast(`🏅 Титул разблокирован: ${t.icon} ${t.name}`);
+          log(`🏅 Новый титул: ${t.name}`, 'gold');
+        }
+      });
+      if(document.getElementById('titles-modal').style.display==='flex') renderTitles();
+    }
+    function renderTitles() {
+      const cont = document.getElementById('titles-list'); cont.innerHTML = '';
+      titleTemplates.forEach(t => {
+        const un = unlockedTitles.includes(t.id);
+        const div = document.createElement('div'); div.className = `title-row ${un?(t.id===equippedTitle?'equipped':''):'locked'}`;
+        div.innerHTML = `<span>${t.icon} ${t.name}</span><span style="font-size:12px;color:#aaa;">${un?(t.id===equippedTitle?'Выбран':'Выбрать'):'🔒'}</span>`;
+        if(un) div.onclick = () => { equippedTitle = t.id; localStorage.setItem('equipped_title', equippedTitle); updateTitleDisplay(); renderTitles(); showToast(`Титул изменён: ${t.name}`); };
+        cont.appendChild(div);
+      });
+    }
+    function updateTitleDisplay() {
+      const t = titleTemplates.find(x => x.id===equippedTitle);
+      const txt = t ? `${t.icon} ${t.name}` : '';
+      const display = document.getElementById('user-display');
+      if(currentUser) display.innerHTML = `${isMainAccount?'👑':'👤'} <span style="color:gold">${currentUser}</span> <span style="font-size:13px;color:#00ffaa">[${txt}]</span>`;
+      else display.textContent = '👤 Гость';
+    }
+
+    // === МОДАЛКИ & СЕКРЕТЫ ===
+    function openModal(type) { document.getElementById(`${type}-modal`).style.display='flex'; playSound('click'); if(type==='quests') { checkDailyReset(); renderDailyQuests(); } if(type==='titles') renderTitles(); if(type==='achievements') renderAchievements(); if(type==='leaderboard') renderLeaderboard(); }
+    function closeModal(type) { document.getElementById(`${type}-modal`).style.display='none'; }
+    function openSecretModal() { document.getElementById('secret-modal').style.display='flex'; document.getElementById('secret-msg').textContent=''; document.getElementById('secret-input').value=''; }
+    function checkSecretCode() {
+      const code = document.getElementById('secret-input').value.trim().toUpperCase();
+      const msgEl = document.getElementById('secret-msg');
+      if(code === 'SHADOW') { unlockedSkins.shadow = true; localStorage.setItem('skins_db', JSON.stringify(unlockedSkins)); msgEl.innerHTML = '<span style="color:#00ffaa">✅ Скин "Shadow Protocol" разблокирован!</span>'; playSound('upgrade'); }
+      else if(code === 'GODMODE') { toggleGodMode(); msgEl.innerHTML = '<span style="color:gold">⚡ God Mode активирован!</span>'; }
+      else if(code === 'RESETALL') { localStorage.clear(); unlockedSkins={}; activeSkin='default'; isGodMode=false; playerStats={wins:0,bossWins:0,totalDamage:0,totalBitsEarned:0,godModeActivated:false,lastLogin:''}; unlockedAchievements=[]; leaderboard=[]; dailyQuests={date:'',quests:[]}; unlockedTitles=['t_newbie']; equippedTitle='t_newbie'; msgEl.innerHTML = '<span style="color:#ff6b6b">🔄 Данные сброшены. Перезагрузите страницу.</span>'; }
+      else { msgEl.innerHTML = '<span style="color:#ff4444">❌ Неверный код</span>'; }
+      updateSkinSelector();
+    }
+
+    let isDebugOpen = false;
+    function toggleDebug() { isDebugOpen=!isDebugOpen; document.getElementById('debug-panel').style.display=isDebugOpen?'block':'none'; if(isDebugOpen) log('🛠️ Debug mode ON', 'system'); }
+    function toggleGodMode() { isGodMode=!isGodMode; playerStats.godModeActivated = true; localStorage.setItem('stats_db', JSON.stringify(playerStats)); checkAchievements(); checkTitles(); log(isGodMode?'🛡️ God Mode ON':'🛡️ God Mode OFF', 'system'); updateDebugPanel(); }
+    function addBitsDebug(n) { game.player.bits+=n; playerStats.totalBitsEarned+=n; log(`💾 +${n} битов (Dev)`, 'system'); checkAchievements(); checkTitles(); if(!isMainAccount) saveUserData(); updateUI(); updateDebugPanel(); }
+    function forceWinDebug() { if(!battleActive) return; clearInterval(battleInterval); battleActive=false; game.enemy.hp=0; game.player.bits+=500; playerStats.totalBitsEarned+=500; game.player.level++; playSound('victory'); triggerAnim(enemyMesh,'lose'); triggerAnim(playerMesh,'win'); log('🏆 Принудительная победа (Dev)', 'critical'); setTimeout(()=>{game.enemy.hp=game.enemy.maxHp;triggerAnim(enemyMesh,'idle');triggerAnim(playerMesh,'idle');if(game.enemy.boss)prepareBoss();},4000); checkAchievements(); checkTitles(); if(!isMainAccount) saveUserData(); updateUI(); updateDebugPanel(); }
+    function resetDebug() { if(!currentUser) return; const db=getDB(); delete db[currentUser]; saveDB(db); logout(); log('🔄 Прогресс сброшен', 'system'); }
+    function updateDebugPanel() { if(!isDebugOpen) return; document.getElementById('dbg-state').textContent = `State: ${battleActive?'BATTLE':'MENU'}`; document.getElementById('dbg-player').textContent = `Player: ${game.player.hp}/${game.player.maxHp} | Dmg: ${game.player.damage}`; document.getElementById('dbg-enemy').textContent = `Enemy: ${game.enemy.hp}/${game.enemy.maxHp} | Dmg: ${game.enemy.damage}`; document.getElementById('dbg-skills').textContent = `Skills: ${Object.entries(game.player.skills).map(([k,v])=>`${k}:${v}`).join(', ')||'None'}`; document.getElementById('dbg-bits').textContent = `Bits: ${game.player.bits}`; }
+
+    // === THREE.JS СЦЕНА ===
+    let scene, camera, renderer, playerMesh, enemyMesh, particles=[];
+    let battleActive=false, battleInterval=null;
+    let lastTime=performance.now(), frames=0, fps=0;
+
+    function createLogoTexture(faction) {
+      const c=document.createElement('canvas'); c.width=256; c.height=256; const ctx=c.getContext('2d'); ctx.clearRect(0,0,256,256);
+      ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(128,128,100,0,Math.PI*2); ctx.fill();
+      if(faction==='iphone') { ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(140,70); ctx.quadraticCurveTo(160,70,165,95); ctx.quadraticCurveTo(175,130,145,160); ctx.quadraticCurveTo(115,130,125,95); ctx.quadraticCurveTo(130,70,140,70); ctx.fill(); }
+      else if(faction==='android') { ctx.fillStyle='#a4c639'; ctx.beginPath(); ctx.arc(128,95,25, Math.PI, 0); ctx.fill(); ctx.fillRect(103,100,50,45); ctx.fillRect(90,145,20,35); ctx.fillRect(146,145,20,35); ctx.fillStyle='#111'; ctx.fillRect(118,110,8,8); ctx.fillRect(130,110,8,8); }
+      else if(faction==='persian') { ctx.fillStyle='#ffa500'; ctx.beginPath(); ctx.moveTo(128,60); ctx.quadraticCurveTo(160,80,155,120); ctx.quadraticCurveTo(150,160,128,180); ctx.quadraticCurveTo(106,160,101,120); ctx.quadraticCurveTo(96,80,128,60); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(128,120,25,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(128,120,15,0,Math.PI*2); ctx.fill(); }
+      return new THREE.CanvasTexture(c);
+    }
+
+    function init3D() {
+      scene=new THREE.Scene(); scene.background=new THREE.Color(0x050510); scene.fog=new THREE.Fog(0x050510,10,25);
+      camera=new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,0.1,100); camera.position.set(0,4,10); camera.lookAt(0,1,-2);
+      renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(window.innerWidth,window.innerHeight); renderer.shadowMap.enabled=true; document.body.appendChild(renderer.domElement);
+      const amb=new THREE.AmbientLight(0x404060,0.6); scene.add(amb); const dir=new THREE.DirectionalLight(0xffffff,0.8); dir.position.set(5,10,8); dir.castShadow=true; scene.add(dir);
+      const rim=new THREE.PointLight(0x00d1ff,0.5,15); rim.position.set(-8,4,-5); scene.add(rim); const rim2=new THREE.PointLight(0xa4c639,0.5,15); rim2.position.set(8,4,-5); scene.add(rim2); const rim3=new THREE.PointLight(0xffa500,0.5,15); rim3.position.set(0,6,-7); scene.add(rim3);
+      const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.MeshStandardMaterial({color:0x1a1a2e,roughness:0.9})); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+      scene.add(new THREE.GridHelper(20,20,0x333355,0x111122).translateY(0.01));
+      animate();
+    }
+
+    function createCharacter(faction, x, isBoss=false) {
+      const group=new THREE.Group();
+      const isIphone=faction==='iphone'; const isAndroid=faction==='android'; const isPersian=faction==='persian';
+      const main=isIphone?0x00d1ff:(isAndroid?0xa4c639:0xffa500); const dark=isIphone?0x005580:(isAndroid?0x4a6b00:0x8b4500);
+      const scale=isBoss?1.6:1;
+      const bodyGeo = new THREE.CylinderGeometry(0.6*scale,0.55*scale,1.4*scale,16);
+      let bodyMat = new THREE.MeshStandardMaterial({color:main,roughness:0.3,metalness:0.6});
+      if(activeSkin==='shadow') bodyMat = new THREE.MeshStandardMaterial({color:0x111111,roughness:0.1,metalness:0.9});
+      const body=new THREE.Mesh(bodyGeo, bodyMat); body.position.y=1.2*scale; body.castShadow=true; group.add(body);
+      const head=new THREE.Mesh(new THREE.SphereGeometry(0.7*scale,24,24),new THREE.MeshStandardMaterial({color:activeSkin==='shadow'?0x222222:0xffffff,roughness:0.2}));
+      head.position.y=2.5*scale; head.castShadow=true; group.add(head);
+      const eyeGeo=new THREE.SphereGeometry(0.12*scale,16,16);
+      const eyeMat = new THREE.MeshStandardMaterial({color:activeSkin==='shadow'?0xff0055:0x111111});
+      const lE=new THREE.Mesh(eyeGeo,eyeMat); lE.position.set(-0.25*scale,2.55*scale,0.6*scale); group.add(lE);
+      const rE=new THREE.Mesh(eyeGeo,eyeMat); rE.position.set(0.25*scale,2.55*scale,0.6*scale); group.add(rE);
+      const mouth=new THREE.Mesh(new THREE.TorusGeometry(0.18*scale,0.04*scale,8,16,Math.PI),new THREE.MeshStandardMaterial({color:0x222222}));
+      mouth.position.set(0,2.2*scale,0.6*scale); mouth.rotation.z=Math.PI; group.add(mouth);
+      const armGeo=new THREE.CylinderGeometry(0.12*scale,0.12*scale,0.9*scale,8); 
+      const armMat = new THREE.MeshStandardMaterial({color:activeSkin==='shadow'?0x1a1a1a:main,metalness:0.4});
+      const lA=new THREE.Mesh(armGeo,armMat); lA.position.set(-0.9*scale,1.2*scale,0); lA.rotation.z=0.35; group.add(lA);
+      const rA=new THREE.Mesh(armGeo,armMat); rA.position.set(0.9*scale,1.2*scale,0); rA.rotation.z=-0.35; group.add(rA);
+      const legGeo=new THREE.CylinderGeometry(0.15*scale,0.15*scale,0.8*scale,8); 
+      const legMat = new THREE.MeshStandardMaterial({color:activeSkin==='shadow'?0x0a0a0a:dark});
+      const lL=new THREE.Mesh(legGeo,legMat); lL.position.set(-0.3*scale,0.3*scale,0); group.add(lL);
+      const rL=new THREE.Mesh(legGeo,legMat); rL.position.set(0.3*scale,0.3*scale,0); group.add(rL);
+      const logoGeo=new THREE.CircleGeometry(0.35*scale,32);
+      const logoTex=createLogoTexture(faction); logoTex.needsUpdate=true;
+      const logoMat=new THREE.MeshStandardMaterial({map:logoTex,transparent:true,emissive:activeSkin==='shadow'?0x220011:0x222222});
+      const logo=new THREE.Mesh(logoGeo,logoMat); logo.position.set(0,1.4*scale,0.61*scale); group.add(logo);
+      if(isPersian) {
+        const turban=new THREE.Mesh(new THREE.TorusGeometry(0.4*scale,0.12*scale,16,24),new THREE.MeshStandardMaterial({color:activeSkin==='shadow'?0x333333:0xffd700,metalness:0.8}));
+        turban.position.y=3.0*scale; turban.rotation.x=Math.PI/2; group.add(turban);
+        const capeGeo=new THREE.ConeGeometry(0.8*scale,1.2*scale,8); const capeMat=new THREE.MeshStandardMaterial({color:activeSkin==='shadow'?0x220011:0x8b0000,transparent:true,opacity:0.7});
+        const cape=new THREE.Mesh(capeGeo,capeMat); cape.position.set(0,1.8*scale,-0.4*scale); cape.rotation.x=0.3; group.add(cape);
+      }
+      if(isBoss) { const glow=new THREE.PointLight(activeSkin==='shadow'?0xff0055:main,2,8); glow.position.y=1.5*scale; group.add(glow); const aura=new THREE.Mesh(new THREE.SphereGeometry(1.5*scale,32,32),new THREE.MeshBasicMaterial({color:activeSkin==='shadow'?0xff0055:main,transparent:true,opacity:0.15})); aura.position.y=1.2*scale; group.add(aura); }
+      if(activeSkin==='shadow') { const neon=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.1*scale,1.5*scale,0.8*scale)), new THREE.LineBasicMaterial({color:0xff0055})); neon.position.y=1.2*scale; group.add(neon); }
+      group.position.set(x,-2,0); group.scale.set(scale,scale,scale);
+      group.userData={lA,rA,lL,rL,head,mouth,state:'idle',time:0,faction,isBoss};
+      scene.add(group); return group;
+    }
+
+    function spawnParticles(pos,color) {
+      for(let i=0;i<12;i++) { const p=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.12),new THREE.MeshBasicMaterial({color,transparent:true,opacity:1})); p.position.copy(pos); p.position.y+=1.5; p.userData.vel=new THREE.Vector3((Math.random()-0.5)*0.4,Math.random()*0.3+0.1,(Math.random()-0.5)*0.4); p.userData.life=1.2; scene.add(p); particles.push(p); }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate); const dt=0.05;
+      frames++; const now=performance.now();
+      if(now-lastTime>=1000) { fps=frames; frames=0; lastTime=now; document.getElementById('dbg-fps').textContent=`FPS: ${fps}`; }
+      [playerMesh,enemyMesh].forEach(char=>{
+        if(!char) return; const d=char.userData; d.time+=dt; const breathe=Math.sin(d.time*2.5)*0.04*(d.isBoss?1.6:1); d.head.position.y=(d.isBoss?2.5:2.3)+breathe;
+        if(d.state==='attack') { char.position.z=Math.sin(d.time*10)*2.5; d.rA.rotation.x=Math.sin(d.time*10)*2.0; d.head.rotation.y=Math.sin(d.time*8)*0.6; if(d.time%1.5<0.1) { d.state='idle'; char.position.z=0; d.rA.rotation.x=0; d.head.rotation.y=0; } }
+        else if(d.state==='hit') { char.scale.multiplyScalar(1.05); d.head.rotation.z=Math.sin(d.time*18)*0.4; d.mouth.rotation.z=0; if(d.time%1.2<0.1) { const s=d.isBoss?1.6:1; char.scale.set(s,s,s); d.state='idle'; d.head.rotation.z=0; d.mouth.rotation.z=Math.PI; } }
+        else if(d.state==='win') { char.position.y=-2+Math.abs(Math.sin(d.time*4))*1.2; char.rotation.y=d.time*4; d.lA.rotation.z=Math.sin(d.time*6)*1.2; d.rA.rotation.z=-Math.sin(d.time*6)*1.2; }
+        else if(d.state==='lose') { char.rotation.z=Math.min(char.rotation.z+0.06,Math.PI/2.2); char.position.y=-2.3; }
+        else { char.rotation.y=Math.sin(d.time*1.8)*0.15; d.lA.rotation.z=(d.isBoss?1.6:1)*0.35+Math.sin(d.time*2.5)*0.1; d.rA.rotation.z=-(d.isBoss?1.6:1)*0.35-Math.sin(d.time*2.5)*0.1; }
+      });
+      for(let i=particles.length-1;i>=0;i--) { const p=particles[i]; p.position.add(p.userData.vel); p.userData.vel.y-=0.015; p.userData.life-=0.025; p.material.opacity=p.userData.life; p.rotation.x+=0.15; p.rotation.y+=0.1; if(p.userData.life<=0) { scene.remove(p); particles.splice(i,1); } }
+      if(isDebugOpen) updateDebugPanel();
+      renderer.render(scene,camera);
+    }
+
+    // === ЛОГИКА ИГРЫ ===
+    function selectFaction(f) { game.faction=f; game.enemy.mode='arena'; document.getElementById('faction-select').style.display='none'; document.getElementById('game-controls').style.display='block'; if(playerMesh) scene.remove(playerMesh); if(enemyMesh) scene.remove(enemyMesh); playerMesh=createCharacter(f,-3); let ef=f==='iphone'?'android':(f==='android'?'persian':'iphone'); enemyMesh=createCharacter(ef,3); game.enemy.name=ef==='iphone'?'🍎 iPhone Bot':(ef==='android'?'🤖 Android Drone':'🕌 Persian Warrior'); game.enemy.boss=false; if(!isMainAccount) saveUserData(); applySkills(); updateSkinSelector(); updateUI(); checkAchievements(); checkTitles(); const fname=f==='iphone'?'🍎 iPhone Squad':(f==='android'?'🤖 Android Army':'🕌 Persian Dynasty'); log(`🎮 Вы выбрали: ${fname}!`, f); }
+    function setMode(m) { game.enemy.mode=m; document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active')); if(m==='boss') { document.querySelectorAll('.mode-btn')[1].classList.add('active'); prepareBoss(); } else { document.querySelectorAll('.mode-btn')[0].classList.add('active'); prepareArena(); } if(!isMainAccount) saveUserData(); }
+    function prepareArena() { const ef=game.faction==='iphone'?'android':(game.faction==='android'?'persian':'iphone'); game.enemy={hp:100,maxHp:100,damage:8,name:ef==='iphone'?'🍎 iPhone Bot':(ef==='android'?'🤖 Android Drone':'🕌 Persian Warrior'),boss:false,phase:1,turnCount:0}; if(enemyMesh) scene.remove(enemyMesh); enemyMesh=createCharacter(ef,3); }
+    function prepareBoss() { game.enemy={hp:500,maxHp:500,damage:25,name:'👑 CYBER OVERLORD',boss:true,phase:1,turnCount:0}; if(enemyMesh) scene.remove(enemyMesh); enemyMesh=createCharacter('android',3,true); }
+
+    function applySkills() { game.player.damage=10; game.player.maxHp=100; game.player.hp=game.player.maxHp; const sk=game.player.skills; const data=game.skillsData[game.faction]; data.forEach(s=>{ const lvl=sk[s.id]||0; if(s.id==='siri'||s.id==='root'||s.id==='simurgh') game.player.damage+=lvl*s.perLvl; if(s.id==='shield'||s.id==='cyrus') game.player.maxHp+=lvl*s.perLvl; }); game.player.hp=game.player.maxHp; }
+    
+    function startBattle() {
+      if(!game.faction||battleActive) return; initAudio(); playSound(game.enemy.boss?'boss':(game.faction==='persian'?'persian':'click')); battleActive=true;
+      log(`⚔️ БИТВА НАЧИНАЕТСЯ! ${game.enemy.boss?'👑 РЕЖИМ БОССА':'⚔️ АРЕНА'}`, 'system'); game.enemy.turnCount=0;
+      battleInterval=setInterval(()=>{
+        let dmg=game.player.damage+Math.floor(Math.random()*5); const critChance=(game.player.skills.overclock||game.player.skills.genie||0)*2;
+        if(Math.random()<critChance/100) { dmg=Math.floor(dmg*1.8); log(`💥 КРИТИЧЕСКИЙ УДАР!`, 'critical'); }
+        if(Math.random()<((game.player.skills.multitask||0)/100)) { dmg*=2; log(`⚡ ДВОЙНАЯ АТАКА!`, 'critical'); }
+        playerStats.totalDamage += dmg;
+        updateQuestProgress('damage', dmg);
+        playSound('attack'); triggerAnim(playerMesh,'attack'); game.enemy.hp-=dmg; log(`💥 Вы нанесли ${dmg} урона!`, game.faction);
+        if(game.enemy.hp<=0) { clearInterval(battleInterval); battleActive=false; const mult=game.enemy.boss?5:1; const reward=Math.floor((15+game.player.level*4)*mult); game.player.bits+=reward; playerStats.totalBitsEarned+=reward; game.player.level++; playSound('victory'); triggerAnim(enemyMesh,'lose'); triggerAnim(playerMesh,'win'); log(`🏆 ПОБЕДА! +${reward} 💾 | Уровень ${game.player.level}`, 'critical'); 
+          if(game.enemy.boss) { playerStats.bossWins++; updateQuestProgress('boss', 1); log('👑 Босс повержен! Легенда!', 'critical'); } else { playerStats.wins++; updateQuestProgress('wins', 1); }
+          setTimeout(()=>{game.enemy.hp=game.enemy.maxHp;triggerAnim(enemyMesh,'idle');triggerAnim(playerMesh,'idle');if(game.enemy.boss)prepareBoss();},4000);
+          checkAchievements(); checkTitles(); updateLeaderboard(); if(!isMainAccount) saveUserData(); updateUI(); return; }
+        setTimeout(()=>{
+          game.enemy.turnCount++; let eDmg=game.enemy.damage+Math.floor(Math.random()*4);
+          if(game.enemy.boss && game.enemy.turnCount%3===0) { eDmg*=2; playSound('boss'); log(`☠️ БОСС: Ультимативный удар!`, 'critical'); }
+          const dodge=(game.player.skills.customrom||game.player.skills.carpet||0)*3;
+          if(Math.random()<dodge/100) { log(`🌪️ Вы уклонились!`, 'system'); } else {
+            game.player.hp-=eDmg; if(isGodMode && game.player.hp<1) game.player.hp=1;
+            playSound('hit'); triggerAnim(playerMesh,'hit'); spawnParticles(playerMesh.position, game.faction==='iphone'?0x00d1ff:(game.faction==='android'?0xa4c639:0xffa500));
+            log(`🔻 Враг атакует: ${eDmg} урона`, 'enemy');
+          }
+          if(game.player.skills.airdrop||game.player.skills.battery||game.player.skills.genie) { const reg=(game.player.skills.airdrop||0)*3+(game.player.skills.battery||0)*4+(game.player.skills.genie||0)*2; game.player.hp=Math.min(game.player.maxHp, game.player.hp+reg); if(reg>0) log(`💚 Восстановлено ${reg} HP`, 'system'); }
+          if(game.player.hp<=0) { clearInterval(battleInterval); battleActive=false; playSound('hit'); triggerAnim(playerMesh,'lose'); triggerAnim(enemyMesh,'win'); log(`💀 Поражение... +${game.enemy.boss?20:5} 💾 за участие!`, 'critical'); game.player.bits+=game.enemy.boss?20:5; playerStats.totalBitsEarned+=game.enemy.boss?20:5; game.player.hp=game.player.maxHp; game.enemy.hp=game.enemy.maxHp; setTimeout(()=>{triggerAnim(playerMesh,'idle');triggerAnim(enemyMesh,'idle');},3000); checkAchievements(); checkTitles(); if(!isMainAccount) saveUserData(); }
+          updateUI();
+        }, 600);
+        updateUI();
+      }, game.enemy.boss?2200:1600);
+    }
+
+    function triggerAnim(char,type) { if(!char) return; char.userData.state=type; char.userData.time=0; }
+
+    function showUpgrades() { playSound('click'); const panel=document.getElementById('upgrade-panel'); const list=document.getElementById('upgrades-list'); list.innerHTML=''; const data=game.skillsData[game.faction]||[]; data.forEach(s=>{ const lvl=game.player.skills[s.id]||0; const maxed=lvl>=69; const cost=Math.floor(s.baseCost * Math.pow(1.15, lvl)); const div=document.createElement('div'); div.className='skill-row'; div.innerHTML=`<strong>${s.name}</strong> <span style="color:#ffaa00">Lv.${lvl}/69</span><br><small>${s.desc}</small><div class="progress" style="margin:6px 0"><div class="progress-fill" style="width:${(lvl/69)*100}%;background:${maxed?'#4ade80':'#4a9eff'}"></div><div class="lvl-text">${lvl}/69</div></div>${maxed?'<span style="color:#4ade80">✅ Макс. уровень</span>':`<button onclick="upgradeSkill('${s.id}',${cost})" ${game.player.bits<cost?'disabled':''}>⬆️ Улучшить за ${cost} 💾</button>`}`; list.appendChild(div); }); panel.style.display='block'; }
+    function upgradeSkill(id, cost) { if(game.player.bits<cost) return; playSound('upgrade'); game.player.bits-=cost; game.player.skills[id]=(game.player.skills[id]||0)+1; applySkills(); updateQuestProgress('upgrades', 1); if(!isMainAccount) saveUserData(); log(`✅ ${game.skillsData[game.faction].find(s=>s.id===id).name} -> Lv.${game.player.skills[id]}`, game.faction); checkAchievements(); checkTitles(); showUpgrades(); updateUI(); }
+    function closeUpgrades() { playSound('click'); document.getElementById('upgrade-panel').style.display='none'; }
+
+    function updateSkinSelector() {
+      const cont = document.getElementById('skin-selector'); cont.innerHTML = '';
+      const skins = [{id:'default',name:'🎨 Стандартный'}, {id:'shadow',name:'🌑 Shadow Protocol'}];
+      const sel = document.createElement('select'); sel.style.width='100%'; sel.style.padding='8px'; sel.style.borderRadius='6px';
+      sel.style.background='#1a1a2e'; sel.style.color='#fff'; sel.style.border='1px solid #444';
+      skins.forEach(s => {
+        const opt = document.createElement('option'); opt.value = s.id; opt.textContent = s.name;
+        if(!unlockedSkins[s.id] && s.id!=='default') opt.textContent += ' 🔒'; opt.disabled = !unlockedSkins[s.id];
+        if(activeSkin===s.id) opt.selected = true; sel.appendChild(opt);
+      });
+      sel.onchange = () => { activeSkin = sel.value; localStorage.setItem('active_skin', activeSkin); log(`🎭 Скин изменён на ${sel.value}`, 'system'); if(playerMesh) { scene.remove(playerMesh); playerMesh = createCharacter(game.faction, -3); } };
+      const lab = document.createElement('div'); lab.style.margin='5px 0'; lab.style.fontSize='13px';
+      lab.appendChild(document.createTextNode('🎭 Скин: ')); lab.appendChild(sel); cont.appendChild(lab);
+    }
+    function updateUI() { document.getElementById('hp').textContent=`${Math.max(0,game.player.hp)}/${game.player.maxHp}`; document.getElementById('hp-bar').style.width=`${Math.max(0,game.player.hp/game.player.maxHp*100)}%`; document.getElementById('damage').textContent=game.player.damage; document.getElementById('level').textContent=game.player.level; document.getElementById('bits').textContent=isMainAccount?'♾️ Бесконечность':game.player.bits.toLocaleString(); }
+    function log(msg,type) { const el=document.getElementById('battle-log'); const e=document.createElement('div'); e.className=`log-entry ${type}`; e.textContent=`> ${msg}`; el.prepend(e); if(el.children.length>50) el.removeChild(el.lastChild); const dLog=document.getElementById('debug-log'); if(dLog) { const de=document.createElement('div'); de.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`; dLog.prepend(de); if(dLog.children.length>100) dLog.removeChild(dLog.lastChild); } }
+    function showToast(msg) { const cont=document.getElementById('toast-container'); const t=document.createElement('div'); t.className='toast'; t.textContent=msg; cont.appendChild(t); setTimeout(()=>t.remove(), 5000); }
+    function renderAchievements() { const cont = document.getElementById('achievements-list'); cont.innerHTML = ''; achievements.forEach(a => { const un = unlockedAchievements.includes(a.id); const card = document.createElement('div'); card.className = `achievement-card ${un?'unlocked':'locked'}`; card.innerHTML = `<div class="icon">${a.icon}</div><div class="name">${a.name}</div><div class="desc">${a.desc}</div><div style="font-size:11px;color:${un?'gold':'#666'};margin-top:4px;">${un?`+${a.reward} 💾`:'🔒'}</div>`; cont.appendChild(card); }); }
+    function checkAchievements() { achievements.forEach(a => { if(!unlockedAchievements.includes(a.id) && a.check()) unlockAchievement(a.id); }); }
+    function unlockAchievement(id) { if(unlockedAchievements.includes(id)) return; unlockedAchievements.push(id); const a = achievements.find(x => x.id === id); game.player.bits += a.reward; localStorage.setItem('achievements_db', JSON.stringify(unlockedAchievements)); localStorage.setItem('stats_db', JSON.stringify(playerStats)); showToast(`🏆 ${a.icon} ${a.name}!`); log(`🏆 Достижение: ${a.name}`, 'gold'); checkTitles(); if(!isMainAccount) saveUserData(); updateUI(); if(document.getElementById('achievements-modal').style.display==='flex') renderAchievements(); }
+    function updateLeaderboard() { if(!currentUser) return; const entry = { username: currentUser, level: game.player.level, bits: game.player.bits, faction: game.faction||'?', achievements: unlockedAchievements.length, date: Date.now() }; leaderboard = leaderboard.filter(e => e.username !== currentUser); leaderboard.push(entry); leaderboard.sort((a,b) => b.level - a.level || b.bits - a.bits); leaderboard = leaderboard.slice(0, 10); localStorage.setItem('leaderboard_db', JSON.stringify(leaderboard)); }
+    function renderLeaderboard() { const tbody = document.getElementById('leaderboard-body'); tbody.innerHTML = ''; leaderboard.forEach((e,i) => { const tr = document.createElement('tr'); const rankClass = i<3?`rank-${i+1}`:''; const facIcon = e.faction==='iphone'?'🍎':(e.faction==='android'?'🤖':'🕌'); tr.innerHTML = `<td class="${rankClass}">${i+1}</td><td>${e.username}</td><td>${e.level}</td><td>${e.bits.toLocaleString()}</td><td>${facIcon}</td><td>${e.achievements}</td>`; tbody.appendChild(tr); }); }
+    function refreshLeaderboard() { renderLeaderboard(); }
+
+    document.addEventListener('keydown', (e) => {
+      if(e.ctrlKey && e.shiftKey && e.key==='D') { e.preventDefault(); toggleDebug(); }
+      if(e.key==='`' || e.key==='~') { e.preventDefault(); toggleDebug(); }
+      if(e.key==='F5') { e.preventDefault(); if(game.faction && !battleActive) startBattle(); }
+    });
+
+    window.onload = () => { window.addEventListener('resize',()=>{ if(camera){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);} }); };
+  </script>
+</body>
+</html>
